@@ -1,4 +1,4 @@
-
+<?php
 /**
  * Work with smscaptcha.ru service
  *
