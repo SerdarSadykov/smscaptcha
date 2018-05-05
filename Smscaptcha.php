@@ -1,4 +1,25 @@
 <?php
+if(!defined('SMSCAPTCHA_PUBLIC_KEY')){
+	define('SMSCAPTCHA_PUBLIC_KEY',"");
+}
+if(!defined('SMSCAPTCHA_PRIVATE_KEY')){
+	define('SMSCAPTCHA_PRIVATE_KEY',"");
+}
+if(!defined('SMSCAPTCHA_MESSAGE_CODE_NV')){
+	define('SMSCAPTCHA_MESSAGE_CODE_NV',"Введен неверный код");
+}
+if(!defined('SMSCAPTCHA_MESSAGE_CODE_SEND')){
+	define('SMSCAPTCHA_MESSAGE_CODE_SEND',"Отправить");
+}
+if(!defined('SMSCAPTCHA_MESSAGE_CODE_TIMEOUT')){
+	define('SMSCAPTCHA_MESSAGE_CODE_TIMEOUT',"Срок действия проверочного кода исчерпан");
+}
+if(!defined('SMSCAPTCHA_MESSAGE_CODE_RESEND')){
+	define('SMSCAPTCHA_MESSAGE_CODE_RESEND',"Новый код был отправлен");
+}
+if(!defined('SMSCAPTCHA_MESSAGE_EMAIL_RESEND')){
+	define('SMSCAPTCHA_MESSAGE_EMAIL_RESEND',"Новый письмо было отправлено");
+}
 /**
  * Work with smscaptcha.ru service
  *
@@ -50,6 +71,56 @@ class Smscaptcha{
 		}
 		self::setVar('last_error',$message);
 	}
+    /**
+     * Java String.hashCode equivalent
+     *
+     * @param string $s
+     * @return string
+     */
+	public static function hashCode($s){
+		$s = (string)$s;
+		function overflow32($v){
+			$v = $v % 4294967296;
+			if ($v > 2147483647) return $v - 4294967296;
+			elseif ($v < -2147483648) return $v + 4294967296;
+			else return $v;
+		}
+
+		$h = 0;
+		$len = strlen($s);
+		for($i = 0; $i < $len; $i++){
+			$h = overflow32(31 * $h + ord($s[$i]));
+		}
+		return $h;
+	}
+    /**
+     * Get verifyId from cookies
+     *
+     * @param string $data
+     * @return string
+     */
+	public static function getJsClientVerifyId($data){
+		$key = 'verify_'.self::hashCode($data);
+		return isset($_COOKIE[$key])?$_COOKIE[$key]:NULL;
+	}
+    /**
+     * Get js lib client status
+     *
+     * @param string $data
+     * @return string
+     */
+	public static function getJsClientStatus($data,$complete=false){
+		try{
+			$verify_id = self::getJsClientVerifyId($data);
+			if(empty($verify_id)) throw new Exception('Empty verify_id');
+			
+			return self::status($data,$verify_id,$complete);
+		}catch(\Exception $exc){
+			toLog('operationStart: '.$exc->getMessage());
+		}
+		return NULL;
+	}
+	 
     /**
      * Start operation
      *
